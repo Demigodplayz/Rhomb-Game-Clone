@@ -21,6 +21,10 @@ public class GameManager : MonoBehaviour
     [HideInInspector]
     public int levelIndex;
 
+    //Bir küp hareketinin bitip bitmediği
+    [HideInInspector]
+    public bool actionCompleted;
+
     private int _correctPos = 0;
 
     private void Awake()
@@ -33,8 +37,10 @@ public class GameManager : MonoBehaviour
 
     private void Start()
     {
+        levelIndex = SceneManager.GetActiveScene().buildIndex;
         _cubeCount();
         BlockControl();
+        actionCompleted = true;
     }
 
     //Sahne açılışında sahnede kaç tane küp olduğunu sayar
@@ -54,14 +60,14 @@ public class GameManager : MonoBehaviour
     public void LevelCompleteCheck()
     {
         _correctPos++;
+        actionCompleted = true;
 
         if (_correctPos == _cubeCount())
         {
             animator.SetTrigger("FadeOut");
-            if (levelIndex < SceneManager.sceneCount-1)
+            if (levelIndex != SceneManager.sceneCountInBuildSettings-1)
             {
                 levelIndex = SceneManager.GetActiveScene().buildIndex + 1;
-
             }
             else
             {
@@ -71,6 +77,8 @@ public class GameManager : MonoBehaviour
     }
 
 
+    //Küplerin grubunu kontrol eder
+    //Aynı gruptaki küplerin hareketini sağlar
     public void GroupCheck(int index)
     {
         foreach (var item in cubes)

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEngine;
-using System.Security.Cryptography;
 
 //Sadece Editörde Kullanılır 
 #if UNITY_EDITOR
@@ -34,32 +33,27 @@ public class Cube : MonoBehaviour
     //Waypointleri görür,rotayı oluşturur ve çizer
     private void Awake()
     {
-
         _rb = GetComponent<Rigidbody>();
         _lineRenderer = GetComponent<LineRenderer>();
         _target = new Transform[transform.childCount];
         _lineRenderer.positionCount = _target.Length;
-
-
         for (int i = 0; i < _target.Length; i++)
         {
             _target[i] = transform.GetChild(i);
             _lineRenderer.SetPosition(i, _target[i].position);
         }
-
         Instantiate(fadedImage, _target[_target.Length - 1].position, transform.rotation);
     }
 
     private void Start()
     {
         _gm = GameManager.Instance;
+        //Eğer küp 0. gruba dahil değilse GameManagera bildirir
         if (groupNumber != 0)
         {
             _gm.cubes.Add(this);
         }
-
         GroupBasedColor();
-
     }
 
     //Gruba sahip olan küpleri belirginleştirir.
@@ -78,13 +72,16 @@ public class Cube : MonoBehaviour
     //Grup 0'sa harekete geç
     private void OnMouseUp()
     {
-        if (groupNumber == 0)
+        if (_gm.actionCompleted)
         {
-            PreMove();
-        }
-        else
-        {
-            _gm.GroupCheck(groupNumber);
+            if (groupNumber == 0)
+            {
+                PreMove();
+            }
+            else
+            {
+                _gm.GroupCheck(groupNumber);
+            }
         }
     }
 
@@ -94,6 +91,8 @@ public class Cube : MonoBehaviour
         {
             transform.DetachChildren();
             _clicked = true;
+
+            _gm.actionCompleted = false;
             //Engel sıra kontrol
             _gm.BlockControl();
         }
@@ -107,9 +106,6 @@ public class Cube : MonoBehaviour
         {
             Vector3 dir = _target[_wavePointIndex].position - transform.position;
             transform.Translate(dir.normalized * speed * Time.deltaTime, Space.World);
-
-            //lineRenderer.SetPosition(_wavePointIndex, transform.position);
-
             if (Vector3.Distance(transform.position, _target[_wavePointIndex].position) <= 0.2f)
             {
                 GetNextWaypoint();
@@ -184,7 +180,6 @@ public class Cube : MonoBehaviour
 //Inspector'da button oluşturarak waypoint yaratmamızı sağlar
 #if UNITY_EDITOR
 [CustomEditor(typeof(Cube))]
-//[System.Serializable]
 class cubeEditor : Editor
 {
     public override void OnInspectorGUI()
@@ -197,6 +192,7 @@ class cubeEditor : Editor
         Cube cubeScript = (Cube)target;
 
         GUILayout.BeginHorizontal();
+        //Küplerin rotasını belirlemek için kullanılan objeleri üretmek için bir button
         if (GUILayout.Button("Waypoint Türet", GUILayout.Height(25), GUILayout.Width(100)))
         {
             GameObject wayPoint = new GameObject();
@@ -206,6 +202,8 @@ class cubeEditor : Editor
             wayPoint.transform.position = cubeScript.transform.position;
         }
 
+        //Küpün rotasında bulunan engeli üretmek için bir button
+        //En son üretilen iki WayPoint arasında üretilir.
         if (GUILayout.Button("Engel Türet", GUILayout.Height(25), GUILayout.Width(100)))
         {
             Transform parent = cubeScript.transform.GetChild(cubeScript.transform.childCount - 1).transform;
